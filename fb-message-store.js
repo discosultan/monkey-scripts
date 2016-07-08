@@ -17,25 +17,76 @@
     // Config. //
     // ******* //
 
-    var sentMessagesStore = 'sent_messages.v1.html';
-    var actionOnRecentMessagesStore = 'action_on_recent_messages.v1.html';
+    var loggingEnabled = true;
+    var urlCheckInterval = 1000;
+    var requestedStorageQuotaMB = 100;
+    var sentMessagesStore = 'saadetud_sonumid.v1.html';
+    var actionOnRecentMessagesStore = 'tegevused_viimaste_sonumitega.v1.html';
 
     // ******************* //
     // Event subscription. //
     // ******************* //
 
-    window.addEventListener('keydown', function(e) {
+    var lastUrl;
+    var toDispose = []; // { target, type, listener, useCapture }
+
+    // Resubscribe to events each time url change is detected.
+    setInterval(function() {
+        var currentUrl = location.href;
+        if (currentUrl !== lastUrl) {
+            unsubscribeFromEvents();
+            subscribeToEvents();
+        }
+        lastUrl = currentUrl;
+    }, urlCheckInterval);
+
+    function unsubscribeFromEvents() {
+        log('Unsubscribing from events...');
+
+        for (var i = 0; i < toDispose.length; i++) {
+            var disposable = toDispose[i];
+            disposable.target.removeEventListener(
+                disposable.type,
+                disposable.listener,
+                disposable.useCapture);
+            log('Unsubscribed from ' + disposable.target + ' ' + disposable.type + '.');
+        }
+        toDispose.length = 0;
+    }
+
+    function subscribeToEvents() {
+        log('Subscribing to events...');
+
+        // Capture is required in order to catch the message before it is erased from the DOM.
+        var useCapture = true;
+        var type = 'keydown';
+        var listener = onWindowKeydown;
+        window.addEventListener(type, listener, useCapture);
+        toDispose.push({ target: window, type: type, listener: listener, useCapture: useCapture });
+        log('Subscribed to enter keydown.');
+
+        type = 'click';
+        listener = onActionsBtnClick;
+        var largeChatActionsBtn = getActionsBtnForTranslations(['Actions', 'Tegevused']);
+        if (largeChatActionsBtn) {
+            largeChatActionsBtn.addEventListener(type, listener, useCapture);
+            toDispose.push({ target: largeChatActionsBtn, type: type, listener: listener, useCapture: useCapture });
+            log('Subscribed to actions button click.');
+        }
+    }
+
+    function onWindowKeydown(e) {
         if (e.keyCode === 13) { // Enter.
             tryStoreSmallChatWindowMessage();
             tryStoreLargeChatWindowMessage();
         }
-    }, true); // Capture is required in order to catch the message before it is erased from the DOM.
+    }
 
-    var largeChatActionsBtn = getActionsBtnForTranslations(['Actions', 'Tegevused']);
-    if (largeChatActionsBtn) {
-        largeChatActionsBtn.addEventListener('click', function(e) {
+    function onActionsBtnClick(e) {
+        var parentEl = e.target.parentNode.parentNode;
+        if (!parentEl.classList.contains('openToggler')) {
             tryStoreVisibleMessages();
-        }, true);
+        }
     }
 
     // ******************* //
@@ -43,6 +94,7 @@
     // ******************* //
 
     function tryStoreVisibleMessages() {
+        log('Storing visible messages...');
         var recentMessagesEl = document.getElementById('webMessengerRecentMessages');
         if (recentMessagesEl) {
             for (var i = 0; i < recentMessagesEl.children.length; i++) {
@@ -65,12 +117,14 @@
                     }
                 }
             }
+            log('Stored visible messages.');
             return true;
         }
         return false;
     }
 
     function tryStoreSmallChatWindowMessage() {
+        log('Storing small chat window message...');
         var chatSpan = document.querySelector('span[data-text="true"]');
         if (chatSpan) {
             var timestamp = getTimestamp();
@@ -78,6 +132,7 @@
             var name = getMyName();
             if (message) {
                 storeMessage(sentMessagesStore, timestamp, name, message);
+                log('Stored small chat window message.');
                 return true;
             }
         }
@@ -85,6 +140,7 @@
     }
 
     function tryStoreLargeChatWindowMessage() {
+        log('Storing large chat window message...');
         var chatTextarea = document.querySelector('textarea.uiTextareaNoResize.uiTextareaAutogrow');
         if (chatTextarea) {
             var timestamp = getTimestamp();
@@ -92,6 +148,7 @@
             var name = getMyName();
             if (message) {
                 storeMessage(sentMessagesStore, timestamp, name, message);
+                log('Stored large chat window message.');
                 return true;
             }
         }
@@ -106,14 +163,10 @@
     var isWritingToFile = false;
     var endMarker = '<div id="end"></div>\n';
     var entryQueues = {};
-    var requestedStorageQuotaMB = 10;
     var requestedStorageQuotaBytes = requestedStorageQuotaMB * 1024 * 1024;
 
     function storeMessage(store, timestamp, name, message) {
-        console.log(store);
-        console.log(timestamp);
-        console.log(name);
-        console.log(message);
+        // log('Storing message...');
 
         var entry = [];
         entry.push('<p>');
@@ -131,6 +184,8 @@
         entry.push('</p>\n');
         entry.push(endMarker);
 
+        // log(entry);
+
         if (isWritingToFile) {
             var key = sanitizeKey(store);
             var entryQueue = entryQueues[key];
@@ -139,8 +194,10 @@
                 entryQueues[key] = entryQueue;
             }
             entryQueue.push(entry);
+            // log('Queued message');
         } else {
             writeEntry(store, entry);
+            // log('Stored message.');
         }
     }
 
@@ -148,7 +205,7 @@
         isWritingToFile = true;
         navigator.webkitPersistentStorage.requestQuota(requestedStorageQuotaBytes, function(grantedBytes) {
             requestFileSystem(PERSISTENT, grantedBytes, function(fileSystem) {
-                // console.log(fileSystem.root.toURL()); // Prints the filesystem path.
+                // log(fileSystem.root.toURL()); // Prints the filesystem path.
                 fileSystem.root.getFile(store, { create: true, exclusive: false }, function(fileEntry) {
                     fileEntry.createWriter(function(fileWriter) {
 
@@ -210,5 +267,13 @@
 
     function handleError(err) {
         console.error(err);
+    }
+
+    // ********** //
+    // Utilities. //
+    // ********** //
+
+    function log(msg) {
+        if (loggingEnabled) console.log(msg);
     }
 })();
