@@ -17,7 +17,7 @@
     // Config. //
     // ******* //
 
-    var loggingEnabled = true;
+    var loggingEnabled = false;
     var urlCheckInterval = 1000;
     var requestedStorageQuotaMB = 100;
     var sentMessagesStore = 'saadetud_sonumid.v1.html';
@@ -102,7 +102,7 @@
                 if (childEl.classList.contains('webMessengerMessageGroup')) {
                     var nameEl = childEl.querySelector('a[data-hovercard]');
                     var name;
-                    if (nameEl) name = nameEl.innerHTML;
+                    if (nameEl) name = nameEl.innerText;
                     var timestampEl = childEl.querySelector('abbr[data-utime]');
                     var timestamp;
                     if (timestampEl) timestamp = timestampEl.innerHTML;
@@ -111,7 +111,7 @@
                     if (messageEls) {
                         for (var j = 0; j < messageEls.length; j++) {
                             var messageEl = messageEls[j];
-                            var message = messageEl.innerHTML;
+                            var message = messageEl.innerText;
                             storeMessage(actionOnRecentMessagesStore, timestamp, name, message);
                         }
                     }
@@ -125,12 +125,19 @@
 
     function tryStoreSmallChatWindowMessage() {
         log('Storing small chat window message...');
-        var chatSpan = document.querySelector('span[data-text="true"]');
-        if (chatSpan) {
-            var timestamp = getTimestamp();
-            var message = chatSpan.innerHTML;
-            var name = getMyName();
-            if (message) {
+        var chatTabsPageletEl = document.getElementById('ChatTabsPagelet') || document.body;
+        var activeChatTabEl = chatTabsPageletEl.querySelector('div.opened.focusedTab');
+        if (activeChatTabEl) {
+            var chatSpanEl = activeChatTabEl.querySelector('span[data-text="true"]');
+            if (chatSpanEl && chatSpanEl.innerText) {
+                var timestamp = getTimestamp();
+                var message = chatSpanEl.innerText;
+                var name = getMyName();
+                var titlebarTextEl = activeChatTabEl.querySelector('a.titlebarText > span');
+                if (titlebarTextEl) {
+                    var to = titlebarTextEl.innerText;
+                    name = name + ' -> ' + to;
+                }
                 storeMessage(sentMessagesStore, timestamp, name, message);
                 log('Stored small chat window message.');
                 return true;
@@ -142,15 +149,18 @@
     function tryStoreLargeChatWindowMessage() {
         log('Storing large chat window message...');
         var chatTextarea = document.querySelector('textarea.uiTextareaNoResize.uiTextareaAutogrow');
-        if (chatTextarea) {
+        if (chatTextarea && chatTextarea.value) {
             var timestamp = getTimestamp();
             var message = chatTextarea.value;
             var name = getMyName();
-            if (message) {
-                storeMessage(sentMessagesStore, timestamp, name, message);
-                log('Stored large chat window message.');
-                return true;
+            var webMessengerHeaderNameEl = document.getElementById('webMessengerHeaderName') || document.body;
+            var toEl = webMessengerHeaderNameEl.querySelector('a[data-hovercard]');
+            if (toEl) {
+                name = name + ' -> ' + toEl.innerText;
             }
+            storeMessage(sentMessagesStore, timestamp, name, message);
+            log('Stored large chat window message.');
+            return true;
         }
         return false;
     }
@@ -242,7 +252,7 @@
     function getMyName() {
         var profileAnchors = document.querySelectorAll('[data-testid="blue_bar_profile_link"]');
         try {
-            return profileAnchors[0].children[1].innerHTML;
+            return profileAnchors[0].children[1].innerText;
         } catch(ex) {
             return undefined;
         }
