@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FB Message Store
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  Additional FB message store
 // @author       Bill Murray
 // @match        https://*.facebook.com/*
