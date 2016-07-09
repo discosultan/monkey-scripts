@@ -17,7 +17,7 @@
     // Config. //
     // ******* //
 
-    var loggingEnabled = false;
+    var loggingEnabled = true;
     var urlCheckInterval = 1000;
     var requestedStorageQuotaMB = 100;
     var sentMessagesStore = 'saadetud_sonumid.v1.html';
@@ -57,21 +57,42 @@
     function subscribeToEvents() {
         log('Subscribing to events...');
 
-        // Capture is required in order to catch the message before it is erased from the DOM.
-        var useCapture = true;
+        var useCapture = false;
         var type = 'keydown';
-        var listener = onWindowKeydown;
-        window.addEventListener(type, listener, useCapture);
-        toDispose.push({ target: window, type: type, listener: listener, useCapture: useCapture });
-        log('Subscribed to enter keydown.');
+        var listener = onChatTabsPageletKeydown;
+        var chatTabsPageletEl = document.getElementById('ChatTabsPagelet');
+        if (chatTabsPageletEl) {
+            chatTabsPageletEl.addEventListener(type, listener, useCapture);
+            toDispose.push({ target: chatTabsPageletEl, type: type, listener: listener, useCapture: useCapture });
+            log('Subscribed to small chat window keydown.');
+        }
 
+        useCapture = true;
+        listener = onPageletWebMessengerKeydown;
+        var pageletWebMessengerEl = document.getElementById('pagelet_web_messenger');
+        if (pageletWebMessengerEl) {
+            pageletWebMessengerEl.addEventListener(type, listener, useCapture);
+            toDispose.push({ target: pageletWebMessengerEl, type: type, listener: listener, useCapture: useCapture });
+            log('Subscribed to large chat window keydown.');
+        }
+
+        useCapture = false;
         type = 'click';
         listener = onActionsBtnClick;
-        var largeChatActionsBtn = getActionsBtnForTranslations(['Actions', 'Tegevused']);
+        var largeChatActionsBtn = getLargeChatActionsBtn();
         if (largeChatActionsBtn) {
             largeChatActionsBtn.addEventListener(type, listener, useCapture);
             toDispose.push({ target: largeChatActionsBtn, type: type, listener: listener, useCapture: useCapture });
             log('Subscribed to actions button click.');
+        }
+
+        type = 'mousedown';
+        listener = onReplyBtnClick;
+        var replyBtn = getLargeChatReplyBtn();
+        if (replyBtn) {
+            replyBtn.addEventListener(type, listener, useCapture);
+            toDispose.push({ target: replyBtn, type: type, listener: listener, useCapture: useCapture });
+            log('Subscribed to reply button click.');
         }
     }
 
@@ -82,11 +103,27 @@
         }
     }
 
+    function onChatTabsPageletKeydown(e) {
+        if (e.keyCode === 13) { // Enter.
+            tryStoreSmallChatWindowMessage();
+        }
+    }
+
+    function onPageletWebMessengerKeydown(e) {
+        if (e.keyCode === 13) { // Enter.
+            tryStoreLargeChatWindowMessage();
+        }
+    }
+
     function onActionsBtnClick(e) {
-        var parentEl = e.target.parentNode.parentNode;
-        if (!parentEl.classList.contains('openToggler')) {
+        var parentEl = e.target.tagName === 'BUTTON' ? e.target.parentNode : e.target.parentNode.parentNode;
+        if (parentEl.classList.contains('openToggler')) {
             tryStoreVisibleMessages();
         }
+    }
+
+    function onReplyBtnClick(e) {
+        tryStoreLargeChatWindowMessage();
     }
 
     // ******************* //
@@ -148,7 +185,7 @@
 
     function tryStoreLargeChatWindowMessage() {
         log('Storing large chat window message...');
-        var chatTextarea = document.querySelector('textarea.uiTextareaNoResize.uiTextareaAutogrow');
+        var chatTextarea = document.querySelector('#pagelet_web_messenger textarea.uiTextareaNoResize.uiTextareaAutogrow');
         if (chatTextarea && chatTextarea.value) {
             var timestamp = getTimestamp();
             var message = chatTextarea.value;
@@ -262,13 +299,12 @@
         return new Date().toLocaleString();
     }
 
-    function getActionsBtnForTranslations(translations) {
-        for (var i = 0; i < translations.length; i++) {
-            var translation = translations[i];
-            var largeChatActionsBtn = document.querySelector('button[data-tooltip-content="' + translation + '"]');
-            if (largeChatActionsBtn) return largeChatActionsBtn;
-        }
-        return undefined;
+    function getLargeChatActionsBtn() {
+        return document.querySelector('#pagelet_web_messenger div.uiPopover > button[type="submit"][value="1"]');
+    }
+
+    function getLargeChatReplyBtn() {
+        return document.querySelector('#pagelet_web_messenger label.uiButton.uiButtonConfirm > input[type="submit"]');
     }
 
     // *************** //
