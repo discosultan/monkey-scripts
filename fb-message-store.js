@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FB Message Store
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.1
 // @description  Additional FB message store
 // @author       Bill Murray
 // @match        https://*.facebook.com/*
@@ -21,8 +21,8 @@
     var initialSubscriptionTimeout = 1000;
     var resubscriptionInterval = 5000;
     var requestedStorageQuotaMB = 100;
-    var sentMessagesStore = 'saadetud_sonumid.v6.html';
-    var actionOnRecentMessagesStore = 'tegevused_viimaste_sonumitega.v6.html';
+    var sentMessagesStore = 'saadetud_sonumid.v1.html';
+    var actionOnRecentMessagesStore = 'tegevused_viimaste_sonumitega.v1.html';
 
     // ******************* //
     // Event subscription. //
@@ -30,15 +30,6 @@
 
     var lastUrl;
     var toDispose = []; // { target, type, listener, useCapture }
-
-    // Resubscribe to events each time url change is detected.
-    // setInterval(function() {
-    //     var currentUrl = location.href;
-    //     if (currentUrl !== lastUrl) {
-    //         resetSubscriptions();
-    //     }
-    //     lastUrl = currentUrl;
-    // }, resubscriptionInterval);
 
     // Resubscribe to events at regular intervals.
     setInterval(resetSubscriptions, resubscriptionInterval);
@@ -87,17 +78,6 @@
             toDispose.push({ target: largeChatEl, type: type, listener: listener, useCapture: useCapture });
             log('Subscribed to large chat keydown.');
         }
-
-        // type = 'click';
-        // listener = onSmallChatHeaderClick;
-        // var smallChatHeaderEl = document.querySelector('#ChatTabsPagelet a.fbNubButton');
-        // log(smallChatHeaderEl);
-        // if (smallChatHeaderEl) {
-        //     smallChatHeaderEl.addEventListener(type, listener, useCapture);
-        //     toDispose.push({ target: smallChatHeaderEl, type: type, listener: listener, useCapture: useCapture });
-        //     log('Subscribed to small chat header click.');
-        // }
-
         type = 'click';
         listener = onSmallChatActionsBtnClick;
         useCapture = false;
