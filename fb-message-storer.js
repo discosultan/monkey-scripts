@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         FB Message Store
+// @name         FB Message Storer
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  Additional FB message store
+// @description  Store FB messages to Chrome's persistent filesystem
 // @author       Bill Murray
 // @match        https://*.facebook.com/*
 // @grant        none
@@ -78,6 +78,7 @@
             toDispose.push({ target: largeChatEl, type: type, listener: listener, useCapture: useCapture });
             log('Subscribed to large chat keydown.');
         }
+
         type = 'click';
         listener = onSmallChatActionsBtnClick;
         useCapture = false;
