@@ -21,8 +21,8 @@
     var initialSubscriptionTimeout = 1000;
     var resubscriptionInterval = 5000;
     var requestedStorageQuotaMB = 100;
-    var sentMessagesStore = 'saadetud_sonumid.v4.html';
-    var actionOnRecentMessagesStore = 'tegevused_viimaste_sonumitega.v4.html';
+    var sentMessagesStore = 'saadetud_sonumid.v6.html';
+    var actionOnRecentMessagesStore = 'tegevused_viimaste_sonumitega.v6.html';
 
     // ******************* //
     // Event subscription. //
@@ -108,6 +108,7 @@
             log('Subscribed to small chat actions button click.');
         }
 
+        type = 'click';
         listener = onLargeChatActionsBtnClick;
         useCapture = false;
         var largeChatActionsBtnEl = getLargeChatActionsBtnEl();
@@ -119,6 +120,7 @@
 
         type = 'mousedown';
         listener = onLargeChatReplyBtnClick;
+        useCapture = false;
         var largeCharReplyBtnEl = getLargeChatReplyBtnEl();
         if (largeCharReplyBtnEl) {
             largeCharReplyBtnEl.addEventListener(type, listener, useCapture);
@@ -183,7 +185,7 @@
 
                     var textEl = recentMessageEl.querySelector('span > span');
                     var message = recentMessageEl.innerText;
-                    var timestamp = getTimestamp();
+                    var timestamp; // There's no way to get a timestamp for this one, so we pass undefined.
                     var name = isMe ? myName + ' -> ' + otherName : otherName + ' -> ' + myName;
                     storeMessage(actionOnRecentMessagesStore, timestamp, name, message);
                 }
@@ -196,7 +198,8 @@
 
     function tryStoreVisibleLargeChatMessages() {
         log('Storing visible large chat messages...');
-        var recentMessageEls = document.querySelectorAll('#webMessengerRecentMessages li.webMessengerMessageGroup');
+        var largeChatEl = getLargeChatEl();
+        var recentMessageEls = largeChatEl && largeChatEl.querySelectorAll('#webMessengerRecentMessages li.webMessengerMessageGroup');
         if (recentMessageEls.length) {
             for (var i = 0; i < recentMessageEls.length; i++) {
                 var childEl = recentMessageEls[i];
@@ -244,7 +247,8 @@
 
     function tryStoreLargeChatWindowMessage() {
         log('Storing large chat window message...');
-        var chatTextarea = document.querySelector('#pagelet_web_messenger textarea.uiTextareaNoResize.uiTextareaAutogrow');
+        var largeChatEl = getLargeChatEl();
+        var chatTextarea = largeChatEl && largeChatEl.querySelector('textarea.uiTextareaNoResize.uiTextareaAutogrow');
         if (chatTextarea && chatTextarea.value) {
             var timestamp = getTimestamp();
             var message = chatTextarea.value;
