@@ -251,7 +251,8 @@
 
     var requestFileSystem = requestFileSystem || webkitRequestFileSystem;
     var isWritingToFile = false;
-    var endMarker = '<div id="end"></div>\n';
+    var contentPrefix = '<meta charset="utf-8" />\n';
+    var contentSuffix = '<div id="end"></div>\n';
     var entryQueues = {};
     var requestedStorageQuotaBytes = requestedStorageQuotaMB * 1024 * 1024;
 
@@ -272,7 +273,6 @@
         }
         entry.push(message);
         entry.push('</p>\n');
-        entry.push(endMarker);
 
         // log(entry);
 
@@ -310,11 +310,20 @@
                             }
                         };
 
-                        var blob = new Blob(entry, {type: 'text/plain'});
+                        var isNewFile = fileWriter.length === 0;
+                        if (isNewFile) {
+                            // Add prefix.
+                            entry.unshift(contentPrefix);
+                        } else {
+                            // Start write position at EOF. Overwrite suffix.
+                            fileWriter.seek(fileWriter.length - contentSuffix.length);
+                        }
 
-                        // Start write position at EOF. Overwrite endMarker.
-                        fileWriter.seek(fileWriter.length - endMarker.length);
-                        fileWriter.write(blob);
+                        // Always (Re)Add suffix.
+                        entry.push(contentSuffix);
+
+                        // Write entry.
+                        fileWriter.write(new Blob(entry, { type: 'text/plain' }));
                     }, handleError);
                 }, handleError);
             }, handleError);
